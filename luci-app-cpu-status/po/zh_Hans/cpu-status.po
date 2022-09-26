@@ -16,13 +16,13 @@ msgid "Calculating"
 msgstr ""
 
 msgid "CPU"
-msgstr "处理器"
+msgstr ""
 
 msgid "CPU Load"
-msgstr ""
+msgstr "CPU 负载"
 
 msgid "Load"
-msgstr "负荷"
+msgstr "负载"
 
 msgid "Total Load"
-msgstr ""
+msgstr "总负载"

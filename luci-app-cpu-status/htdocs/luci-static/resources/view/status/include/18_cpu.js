@@ -31,13 +31,13 @@ return baseclass.extend({
 		let cpuTableTitles = [
 			_('CPU'),
 			_('Load'),
-			'user %',
-			'nice %',
-			'system %',
-			'idle %',
-			'iowait %',
-			'irq %',
-			'softirq %',
+			'占用率 %',
+			'低优先占用 %',
+			'系统占用 %',
+			'空闲率 %',
+			'I/O等待 %',
+			'中断 %',
+			'软中断 %',
 		];
 
 		let cpuTable = E('table', { 'class': 'table' },
