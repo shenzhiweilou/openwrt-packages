@@ -13,6 +13,8 @@ ipv6_dns=$(uci -q get openclash.config.ipv6_dns || echo 0)
 tolerance=$(uci -q get openclash.config.tolerance || echo 0)
 custom_fallback_filter=$(uci -q get openclash.config.custom_fallback_filter || echo 0)
 enable_meta_core=$(uci -q get openclash.config.enable_meta_core || echo 0)
+china_ip_route=$(uci -q get openclash.config.china_ip_route || echo 0)
+
 lan_block_google_dns=$(uci -q get openclash.config.lan_block_google_dns_ips || uci -q get openclash.config.lan_block_google_dns_macs || echo 0)
 
 if [ -n "$(ruby_read "$5" "['tun']")" ]; then
@@ -65,6 +67,13 @@ else
 fi
 
 uci commit openclash
+
+if [ "$1" = "fake-ip" ] && [ "$china_ip_route" = "1" ]; then
+   for i in `awk '!/^$/&&!/^#/&&!/(^([1-9]|1[0-9]|1[1-9]{2}|2[0-4][0-9]|25[0-5])\.)(([0-9]{1,2}|1[1-9]{2}|2[0-4][0-9]|25[0-5])\.){2}([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-5][0-9]|25[0-4])((\/[0-9][0-9])?)$/{printf("%s\n",$0)}' /etc/openclash/custom/openclash_custom_chnroute_pass.list`
+   do
+      echo "$i" >> /tmp/openclash_fake_filter_include
+   done 2>/dev/null
+fi
 
 #获取认证信息
 yml_auth_get()
@@ -257,9 +266,9 @@ yml_dns_get()
       interface=""
    fi
 
-   if [ "$http3" = "1" ] && [ "$enable_meta_core" = "1" ] && [ "$interface" != "" ]; then
+   if [ "$http3" = "1" ] && [ "$enable_meta_core" = "1" ] && [ -n "$specific_group" ]; then
       http3="&h3=true"
-   elif [ "$http3" = "1" ] && [ "$enable_meta_core" = "1" ] && [ "$interface" = "" ]; then
+   elif [ "$http3" = "1" ] && [ "$enable_meta_core" = "1" ] && [ -z "$specific_group" ]; then
       http3="#h3=true"
    elif [ "$http3" = "1" ] && [ "$enable_meta_core" != "1" ]; then
       LOG_OUT "Warning: Only Meta Core Support Force HTTP/3 to connect, Skip Setting【$dns_type$dns_address】"
@@ -460,6 +469,7 @@ Thread.new{
       Value['tun']['stack']='$stack_type';
       if ${20} == 1 then
          Value['tun']['device']='utun';
+         Value['tun']['mtu']=65535;
       end;
       Value_2={'dns-hijack'=>['tcp://any:53']};
       Value['tun']['auto-route']=false;
@@ -634,6 +644,17 @@ Thread.new{
    if '$1' == 'fake-ip' then
       if File::exist?('/etc/openclash/custom/openclash_custom_fake_filter.list') then
          Value_4 = IO.readlines('/etc/openclash/custom/openclash_custom_fake_filter.list');
+         if not Value_4.empty? then
+            Value_4 = Value_4.map!{|x| x.gsub(/#.*$/,'').strip} - ['', nil];
+            if Value['dns'].has_key?('fake-ip-filter') and not Value['dns']['fake-ip-filter'].to_a.empty? then
+               Value['dns']['fake-ip-filter'] = Value['dns']['fake-ip-filter'] | Value_4;
+            else
+               Value['dns']['fake-ip-filter'] = Value_4;
+            end;
+         end;
+      end;
+      if File::exist?('/tmp/openclash_fake_filter_include') then
+         Value_4 = IO.readlines('/tmp/openclash_fake_filter_include');
          if not Value_4.empty? then
             Value_4 = Value_4.map!{|x| x.gsub(/#.*$/,'').strip} - ['', nil];
             if Value['dns'].has_key?('fake-ip-filter') and not Value['dns']['fake-ip-filter'].to_a.empty? then
